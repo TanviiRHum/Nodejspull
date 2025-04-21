@@ -1,0 +1,50 @@
+---
+- name: Deploy Node.js Web Application
+  hosts: all
+  become: yes
+  tasks:
+    - name: Ensure Node.js is installed
+      apt:
+        name: nodejs
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Ensure npm is installed
+      apt:
+        name: npm
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install git if it's not installed
+      apt:
+        name: git
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Clone the Node.js application repository
+      git:
+        repo: 'https://github.com/yourusername/your-nodejs-app.git'  # Replace with your repository URL
+        dest: /opt/nodejs-app
+        version: master
+        force: yes
+
+    - name: Install Node.js dependencies
+      npm:
+        path: /opt/nodejs-app
+        state: present
+
+    - name: Ensure the Node.js app is running
+      shell: |
+        nohup node /opt/nodejs-app/app.js > /opt/nodejs-app/app.log 2>&1 &
+      args:
+        creates: /opt/nodejs-app/app.log  # Ensure the app is running if the log file exists
+
+    - name: Open port 3000 on the firewall
+      ufw:
+        rule: allow
+        name: 'Node.js'
+        port: 3000
+        proto: tcp
+      when: ansible_facts['distribution'] == "Ubuntu"
